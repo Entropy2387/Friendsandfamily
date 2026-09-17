@@ -1,0 +1,22 @@
+FRIENDS & FAMILY V2 — DEPLOYMENT
+
+1. Keep your existing Supabase project.
+2. In Supabase > SQL Editor, run schema.sql again. It is safe to run the CREATE IF NOT EXISTS parts and it adds the invitations feature.
+3. IMPORTANT: before uploading, copy your current real config.js values into this package's config.js if they are not already there.
+4. Open your GitHub repository > Add file > Upload files.
+5. Drag ALL files from this folder into GitHub and choose to replace files with the same names.
+6. Commit changes to main.
+7. GitHub Pages should redeploy automatically. Check Settings > Pages if needed.
+
+TO CREATE A NEW SINGLE-USE INVITE:
+Run in Supabase SQL Editor:
+insert into public.invitations default values returning invite_token;
+
+Then send:
+https://YOUR-USERNAME.github.io/YOUR-REPO/join.html?invite=PASTE_TOKEN_HERE
+
+EXISTING PROFILE LINKS:
+select name,'https://YOUR-USERNAME.github.io/YOUR-REPO/edit.html?token=' || edit_token as private_edit_link from public.people order by name;
+
+SECURITY:
+Never put the Supabase service_role/secret key, edit tokens, invite tokens, or database exports in GitHub.

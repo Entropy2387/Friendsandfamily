@@ -143,3 +143,12 @@ where not exists (select 1 from public.people);
 --   'https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO/edit.html?token=' || edit_token as private_edit_link
 -- from public.people
 -- order by extract(month from birthday), extract(day from birthday);
+
+-- V2: single-use invitations for new profiles
+create table if not exists public.invitations(id uuid primary key default gen_random_uuid(),invite_token uuid not null unique default gen_random_uuid(),created_at timestamptz not null default now(),used_at timestamptz);
+alter table public.invitations enable row level security;
+revoke all on public.invitations from anon, authenticated;
+create or replace function public.check_invitation(p_token uuid) returns boolean language sql security definer set search_path=public as $$ select exists(select 1 from public.invitations where invite_token=p_token and used_at is null); $$;
+grant execute on function public.check_invitation(uuid) to anon;
+create or replace function public.create_person_from_invite(p_invite uuid,p_name text,p_birthday date,p_address text,p_phone text,p_email text,p_favourite_flower text,p_favourite_treat text,p_favourite_drink text,p_hobbies text,p_likes text,p_dislikes text) returns uuid language plpgsql security definer set search_path=public as $$ declare nt uuid; iid uuid; begin select id into iid from public.invitations where invite_token=p_invite and used_at is null for update; if iid is null then return null; end if; insert into public.people(name,birthday,address,phone,email,favourite_flower,favourite_treat,favourite_drink,hobbies,likes,dislikes) values(p_name,p_birthday,coalesce(p_address,''),coalesce(p_phone,''),coalesce(p_email,''),coalesce(p_favourite_flower,''),coalesce(p_favourite_treat,''),coalesce(p_favourite_drink,''),coalesce(p_hobbies,''),coalesce(p_likes,''),coalesce(p_dislikes,'')) returning edit_token into nt; update public.invitations set used_at=now() where id=iid; return nt; end; $$;
+grant execute on function public.create_person_from_invite(uuid,text,date,text,text,text,text,text,text,text,text,text) to anon;
